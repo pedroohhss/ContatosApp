@@ -1,0 +1,248 @@
+﻿@page "/novo-contato"
+@page "/contato/{Id:int}"
+
+@using System;
+@using System.Threading.Tasks;
+@using Microsoft.AspNetCore.Components.Forms;
+
+<div class="contact-form-container">
+    <EditForm Model="@_contato" OnValidSubmit="SalvarContato">
+        <DataAnnotationsValidator />
+        <div class="form-group">
+            <label for="name">Nome</label>
+            <input id="name" @bind="_contato.Nome" class="form-control" />
+        </div>
+        <div class="form-group">
+            <label for="phone">Telefone</label>
+            <input id="phone" @bind="_contato.Telefone" class="form-control" />
+        </div>
+        <div class="form-group">
+            <label for="email">E-mail</label>
+            <input id="email" @bind="_contato.Email" class="form-control" />
+        </div>
+        <div class="actions">
+            <button type="submit" class="save-btn">Salvar</button>
+            @if (Id > 0)
+            {
+                <button type="button" class="delete-btn" @onclick="ShowDeleteConfirmation">Excluir</button>
+            }
+            <button type="button" class="cancel-btn" @onclick="Cancelar">Cancelar</button>
+        </div>
+    </EditForm>
+</div>
+
+@if (showDeleteDialog)
+{
+    <div class="modal-overlay">
+        <div class="modal-content">
+            <h2>Confirmação de Exclusão</h2>
+            <p>Tem certeza que deseja excluir este contato?</p>
+            <div class="modal-actions">
+                <button class="confirm-btn" @onclick="ExcluirContato">Excluir</button>
+                <button class="cancel-btn" @onclick="CloseDialog">Cancelar</button>
+            </div>
+        </div>
+    </div>
+}
+
+<style>
+    .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+    }
+
+    .modal-content {
+        background-color: #1e1e1e;
+        padding: 20px;
+        border-radius: 10px;
+        width: 400px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        text-align: center;
+        color: #ffffff;
+    }
+
+    .modal-content h2 {
+        margin-bottom: 10px;
+        font-size: 1.5em;
+    }
+
+    .modal-actions {
+        display: flex;
+        justify-content: space-around;
+        margin-top: 20px;
+    }
+
+    .confirm-btn {
+        background-color: #c53030;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 16px;
+    }
+
+    .confirm-btn:hover {
+        background-color: #9b2c2c;
+    }
+
+    .contact-form-container {
+    background-color: #1e1e1e;
+    padding: 20px;
+    margin: 0 auto;
+    position: absolute;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    width: 100%;
+    overflow-y: auto;
+    }
+
+    .form-group {
+    margin-bottom: 20px;
+    }
+
+    label {
+    display: block;
+    font-size: 14px;
+    color: #b3b3b3;
+    margin-bottom: 5px;
+    }
+
+    .form-control {
+    width: 100%;
+    padding: 10px;
+    font-size: 16px;
+    border: 1px solid #333;
+    border-radius: 5px;
+    background-color: #252525;
+    color: #fff;
+    }
+
+    .phone-input {
+    display: flex;
+    align-items: center;
+    }
+
+    .save-btn {
+    background-color: #0077b6;
+    color: #fff;
+    border: none;
+    padding: 10px 20px;
+    font-size: 16px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    margin-right: 10px;
+    }
+
+    .save-btn:hover {
+    background-color: #005a88;
+    }
+
+    .delete-btn {
+    background-color: #c53030;
+    color: #fff;
+    border: none;
+    padding: 10px 20px;
+    font-size: 16px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    margin-right: 10px;
+    }
+
+    .delete-btn:hover {
+    background-color: #9b2c2c;
+    }
+
+    .cancel-btn {
+    background-color: #6b7280;
+    color: #fff;
+    border: none;
+    padding: 10px 20px;
+    font-size: 16px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    }
+
+    .cancel-btn:hover {
+    background-color: #4b5563;
+    }
+</style>
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+    private Contato _contato = new Contato();
+    private bool showDeleteDialog = false;
+
+    [Inject]
+    private ISnackbar Snackbar { get; set; }
+
+    [Inject]
+    private DatabaseService DatabaseService { get; set; }
+
+    [Inject]
+    private NavigationManager NavigationManager { get; set; }
+
+    [Inject]
+    private IDialogService DialogService { get; set; }
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Id > 0)
+        {
+            _contato = await DatabaseService.GetContatoByIdAsync(Id) ?? new Contato();
+        }
+    }
+
+    private async Task SalvarContato()
+    {
+        if (Id > 0)
+        {
+            await DatabaseService.AtualizarContatoAsync(_contato);
+        }
+        else
+        {
+            await DatabaseService.AdicionarContatoAsync(_contato);
+        }
+
+        NavigationManager.NavigateTo("/");
+    }
+
+    private async Task ExcluirContato()
+    {
+        if (Id > 0)
+        {
+            await DatabaseService.ExcluirContatoAsync(_contato);
+            NavigationManager.NavigateTo("/");
+        }
+    }
+
+    private void Cancelar()
+    {
+        NavigationManager.NavigateTo("/");
+    }
+
+    private void ShowDeleteConfirmation()
+    {
+        showDeleteDialog = true;
+    }
+
+    private void CloseDialog()
+    {
+        showDeleteDialog = false;
+    }
+}

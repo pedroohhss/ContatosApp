@@ -1,0 +1,156 @@
+﻿@page "/"
+@inject NavigationManager NavigationManager
+@inject DatabaseService DatabaseService
+@inject ISnackbar Snackbar
+
+<PageTitle>Meus Contatos</PageTitle>
+
+<div class="container">
+    <div class="header">
+        <button class="add-button" @onclick="AdicionarNovoContato">Criar Novo Contato</button>
+    </div>
+
+    <div class="contact-list">
+        @if (_contatos == null || _contatos.Count == 0)
+        {
+                <div class="empty">Nenhum contato cadastrado</div>
+        }
+        else
+        {
+            @foreach (var contato in _contatos)
+            {
+                        <div class="contact-item" @onclick="() => VerDetalhesContato(contato)">
+                            <div class="circle" style="background-color:@GetCircleColor(contato.Nome)">
+                        @contato.Nome.Substring(0, 1).ToUpper()
+                            </div>
+                            <div class="contact-details">
+                                <div class="name">@contato.Nome</div>
+                                <div class="phone">@contato.Telefone</div>
+                            </div>
+                        </div>
+            }
+        }
+    </div>
+</div>
+
+<style>
+    .container {
+        background-color: #121212;
+        color: white;
+        font-family: Arial, sans-serif;
+        padding: 20px;
+        height: 100vh;
+        overflow-y: auto;
+    }
+
+    .add-button {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: #1E88E5;
+        color: white;
+        border: none;
+        border-radius: 20px;
+        padding: 10px 20px;
+        font-size: 16px;
+        cursor: pointer;
+        margin-bottom: 20px;
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    .add-button:hover {
+        background-color: #1565C0;
+    }
+
+    .contact-list {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .contact-item {
+        display: flex;
+        align-items: center;
+        background-color: #1E1E1E;
+        border-radius: 10px;
+        padding: 10px;
+        cursor: pointer;
+        transition: background 0.3s;
+    }
+
+    .contact-item:hover {
+        background-color: #333333;
+    }
+
+    .circle {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        color: white;
+        font-weight: bold;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin-right: 15px;
+        font-size: 18px;
+    }
+
+    .contact-details .name {
+        font-size: 16px;
+        font-weight: bold;
+    }
+
+    .contact-details .phone {
+        font-size: 14px;
+        color: #AAAAAA;
+    }
+
+    .empty {
+        text-align: center;
+        color: #AAAAAA;
+        margin-top: 20px;
+    }
+</style>
+
+@code {
+    private List<Contato> _contatos = new();
+    private bool _carregando = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CarregarContatos();
+    }
+
+    private async Task CarregarContatos()
+    {
+        try
+        {
+            _contatos = await DatabaseService.GetContatosAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Erro ao carregar contatos: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _carregando = false;
+        }
+    }
+
+    private void AdicionarNovoContato()
+    {
+        NavigationManager.NavigateTo("/novo-contato");
+    }
+
+    private void VerDetalhesContato(Contato contato)
+    {
+        NavigationManager.NavigateTo($"/contato/{contato.Id}");
+    }
+
+    private string GetCircleColor(string name)
+    {
+        var colors = new[] { "#FFB74D", "#81D4FA", "#F48FB1", "#B39DDB", "#A5D6A7", "#FF8A65" };
+        return colors[Math.Abs(name.GetHashCode()) % colors.Length];
+    }
+}
